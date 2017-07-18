@@ -1,5 +1,7 @@
 apply plugin: 'com.android.library'
-
+//添加这两行
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'com.jfrog.bintray'
 android {
     compileSdkVersion 25
     buildToolsVersion "25.0.3"
@@ -24,3 +26,5 @@ android {
 dependencies {
     provided 'com.android.support:appcompat-v7:25.3.1'
 }
+
+apply from: 'bintrayUpload.gradle'
