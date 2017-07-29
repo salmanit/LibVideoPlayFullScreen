@@ -58,6 +58,7 @@ public class NiceVideoPlayer extends FrameLayout
     private MediaPlayer mMediaPlayer;
 
     private int mBufferPercentage;
+    private AudioManager manager;
 
     public NiceVideoPlayer(Context context) {
         this(context, null);
@@ -82,6 +83,7 @@ public class NiceVideoPlayer extends FrameLayout
         mUrl = url;
         mHeaders = headers;
     }
+
     public void setUp(String url) {
         mUrl = url;
         mHeaders = null;
@@ -237,6 +239,7 @@ public class NiceVideoPlayer extends FrameLayout
             mMediaPlayer.setOnErrorListener(mOnErrorListener);
             mMediaPlayer.setOnInfoListener(mOnInfoListener);
             mMediaPlayer.setOnBufferingUpdateListener(mOnBufferingUpdateListener);
+            manager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
         }
     }
 
@@ -270,6 +273,7 @@ public class NiceVideoPlayer extends FrameLayout
             mMediaPlayer.setDataSource(mContext.getApplicationContext(), Uri.parse(mUrl), mHeaders);
             mMediaPlayer.setSurface(new Surface(mSurfaceTexture));
             mMediaPlayer.prepareAsync();
+            manager.abandonAudioFocus(audioFocusChangeListener);
             mCurrentState = STATE_PREPARING;
             mController.setControllerState(mPlayerState, mCurrentState);
         } catch (IOException e) {
@@ -294,9 +298,13 @@ public class NiceVideoPlayer extends FrameLayout
             = new MediaPlayer.OnPreparedListener() {
         @Override
         public void onPrepared(MediaPlayer mp) {
-            mp.start();
-            mCurrentState = STATE_PREPARED;
-            mController.setControllerState(mPlayerState, mCurrentState);
+            int result = manager.requestAudioFocus(audioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                mCurrentState = STATE_PREPARED;
+                mController.setControllerState(mPlayerState, mCurrentState);
+                mp.start();
+            }
+
         }
     };
 
@@ -480,5 +488,34 @@ public class NiceVideoPlayer extends FrameLayout
         }
         mCurrentState = STATE_IDLE;
         mPlayerState = PLAYER_NORMAL;
+        if (manager != null)
+            manager.abandonAudioFocus(audioFocusChangeListener);
     }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        release();
+    }
+
+
+    private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+        @Override
+        public void onAudioFocusChange(int focusChange) {
+            switch (focusChange) {
+                case AudioManager.AUDIOFOCUS_GAIN://获取
+                    restart();
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS:
+                    pause();
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT://短暂丢失
+                    pause();
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+
+                    break;
+            }
+        }
+    };
 }

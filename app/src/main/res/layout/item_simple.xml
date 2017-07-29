@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_position"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:text="1" />
+
+    <sage.libmediaplayhandle.audio.NiceAudioPlayer
+        android:id="@+id/audio_item"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <sage.libmediaplayhandle.NiceVideoPlayer
+        android:id="@+id/nvp"
+        android:layout_width="match_parent"
+        android:layout_height="200dp" />
+</LinearLayout>
