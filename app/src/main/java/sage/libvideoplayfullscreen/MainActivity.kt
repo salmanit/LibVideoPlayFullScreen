@@ -61,8 +61,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    }
 
+//        layout_click.setOnClickListener {
+//                if(big){
+//                   var params= tv_test.layoutParams
+//                    params.height=300*3
+//                    tv_test.top=75*3
+//                    tv_test.layoutParams=params
+//                }else{
+//
+//                    var params= tv_test.layoutParams
+//                    params.height=100*3
+//                    tv_test.top=0
+//                    tv_test.layoutParams=params
+//
+//                }
+//            big=!big
+//        }
+
+    }
+    var big=false;
     class MyHolder(itemView: View) :RecyclerView.ViewHolder(itemView){
         var tv_position=itemView.findViewById(R.id.tv_position) as TextView
         var audioPlayer=itemView.findViewById(R.id.audio_item) as NiceAudioPlayer

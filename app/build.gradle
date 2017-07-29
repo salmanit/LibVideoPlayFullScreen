@@ -9,7 +9,7 @@ android {
         minSdkVersion 16
         targetSdkVersion 21
         versionCode 1
-        versionName "1.1"
+        versionName "1.2"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -31,6 +31,7 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile project(':libmediaplayhandle')
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+//    compile 'sage.libmediaplayhandle:libmediaplayhandle:1.1'
 }
 repositories {
     mavenCentral()

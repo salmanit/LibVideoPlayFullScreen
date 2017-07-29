@@ -255,6 +255,7 @@ public class NiceVideoPlayer extends FrameLayout
         LayoutParams params = new LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
+        params.gravity=Gravity.CENTER;
         mContainer.addView(mTextureView, 0, params);
     }
 
@@ -298,6 +299,7 @@ public class NiceVideoPlayer extends FrameLayout
             = new MediaPlayer.OnPreparedListener() {
         @Override
         public void onPrepared(MediaPlayer mp) {
+            handleTextViewSize(getWidth(),getHeight());
             int result = manager.requestAudioFocus(audioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
             if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                 mCurrentState = STATE_PREPARED;
@@ -308,6 +310,26 @@ public class NiceVideoPlayer extends FrameLayout
         }
     };
 
+    /**这里的宽高为播放控件的*/
+    private void handleTextViewSize(int width,int height){
+        int videoWidth=mMediaPlayer.getVideoWidth();
+        int videoHeight=mMediaPlayer.getVideoHeight();
+
+        ViewGroup.LayoutParams params=mTextureView.getLayoutParams();
+            if(videoWidth*1f/videoHeight>=width*1f/height){
+                int realHeight=videoHeight*width/videoWidth;
+
+                params.height=realHeight;
+                params.width=ViewGroup.LayoutParams.MATCH_PARENT;
+
+
+            }else if(videoWidth*1f/videoHeight<width*1f/height){
+                int realWidth=videoWidth*height/videoHeight;
+                params.width=realWidth;
+                params.height=ViewGroup.LayoutParams.MATCH_PARENT;
+            }
+        mTextureView.setLayoutParams(params);
+    }
     private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener
             = new MediaPlayer.OnVideoSizeChangedListener() {
         @Override
@@ -339,6 +361,7 @@ public class NiceVideoPlayer extends FrameLayout
             = new MediaPlayer.OnInfoListener() {
         @Override
         public boolean onInfo(MediaPlayer mp, int what, int extra) {
+
             if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                 // 播放器渲染第一帧
                 mCurrentState = STATE_PLAYING;
@@ -395,7 +418,7 @@ public class NiceVideoPlayer extends FrameLayout
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
         contentView.addView(mContainer, params);
-
+        handleTextViewSize(getResources().getDisplayMetrics().heightPixels,getResources().getDisplayMetrics().widthPixels);
         mPlayerState = PLAYER_FULL_SCREEN;
         mController.setControllerState(mPlayerState, mCurrentState);
     }
@@ -419,7 +442,7 @@ public class NiceVideoPlayer extends FrameLayout
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT);
             this.addView(mContainer, params);
-
+            handleTextViewSize(getWidth(),getHeight());
             mPlayerState = PLAYER_NORMAL;
             mController.setControllerState(mPlayerState, mCurrentState);
             return true;
@@ -444,9 +467,8 @@ public class NiceVideoPlayer extends FrameLayout
         params.gravity = Gravity.BOTTOM | Gravity.END;
         params.rightMargin = NiceUtil.dp2px(mContext, 8f);
         params.bottomMargin = NiceUtil.dp2px(mContext, 8f);
-
         contentView.addView(mContainer, params);
-
+        handleTextViewSize(params.width,params.height);
         mPlayerState = PLAYER_TINY_WINDOW;
         mController.setControllerState(mPlayerState, mCurrentState);
     }
@@ -464,7 +486,7 @@ public class NiceVideoPlayer extends FrameLayout
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT);
             this.addView(mContainer, params);
-
+                handleTextViewSize(getWidth(),getHeight());
             mPlayerState = PLAYER_NORMAL;
             mController.setControllerState(mPlayerState, mCurrentState);
             return true;
