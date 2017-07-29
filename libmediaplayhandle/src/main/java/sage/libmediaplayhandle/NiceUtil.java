@@ -36,7 +36,7 @@ public class NiceUtil {
     /**
      * Get AppCompatActivity from context
      *
-     * @param context
+     * @param context context
      * @return AppCompatActivity if it's not null
      */
     public static AppCompatActivity getAppCompActivity(Context context) {
@@ -75,7 +75,7 @@ public class NiceUtil {
     /**
      * 获取屏幕宽度
      *
-     * @param context
+     * @param context context
      * @return width of the screen.
      */
     public static int getScreenWidth(Context context) {
@@ -85,7 +85,7 @@ public class NiceUtil {
     /**
      * dp转px
      *
-     * @param context
+     * @param context context
      * @param dpVal   dp value
      * @return px value
      */

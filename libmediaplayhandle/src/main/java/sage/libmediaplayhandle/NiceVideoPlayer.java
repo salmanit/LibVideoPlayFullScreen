@@ -299,6 +299,8 @@ public class NiceVideoPlayer extends FrameLayout
             = new MediaPlayer.OnPreparedListener() {
         @Override
         public void onPrepared(MediaPlayer mp) {
+            thisWidth=getWidth();
+            thisHeight=getHeight();
             handleTextViewSize(getWidth(),getHeight());
             int result = manager.requestAudioFocus(audioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
             if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
@@ -329,6 +331,8 @@ public class NiceVideoPlayer extends FrameLayout
                 params.height=ViewGroup.LayoutParams.MATCH_PARENT;
             }
         mTextureView.setLayoutParams(params);
+        System.out.println("width===="+(videoWidth*1f/videoHeight+"**********"+width*1f/height));
+        System.out.println(videoWidth+"/"+videoHeight+"==width======"+width+"/"+height+"===="+params.width+"/"+params.height);
     }
     private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener
             = new MediaPlayer.OnVideoSizeChangedListener() {
@@ -399,6 +403,8 @@ public class NiceVideoPlayer extends FrameLayout
         }
     };
 
+    private int thisWidth;
+    private int thisHeight;
     /**
      * 全屏，将mContainer(内部包含mTextureView和mController)从当前容器中移除，并添加到android.R.content中.
      */
@@ -442,7 +448,7 @@ public class NiceVideoPlayer extends FrameLayout
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT);
             this.addView(mContainer, params);
-            handleTextViewSize(getWidth(),getHeight());
+            handleTextViewSize(thisWidth,thisHeight);
             mPlayerState = PLAYER_NORMAL;
             mController.setControllerState(mPlayerState, mCurrentState);
             return true;
@@ -457,7 +463,6 @@ public class NiceVideoPlayer extends FrameLayout
     public void enterTinyWindow() {
         if (mPlayerState == PLAYER_TINY_WINDOW) return;
         this.removeView(mContainer);
-
         ViewGroup contentView = (ViewGroup) NiceUtil.scanForActivity(mContext)
                 .findViewById(android.R.id.content);
         // 小窗口的宽度为屏幕宽度的60%，长宽比默认为16:9，右边距、下边距为8dp。
@@ -486,7 +491,7 @@ public class NiceVideoPlayer extends FrameLayout
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT);
             this.addView(mContainer, params);
-                handleTextViewSize(getWidth(),getHeight());
+                handleTextViewSize(thisWidth,thisWidth);
             mPlayerState = PLAYER_NORMAL;
             mController.setControllerState(mPlayerState, mCurrentState);
             return true;
