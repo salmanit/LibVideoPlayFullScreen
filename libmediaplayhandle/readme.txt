@@ -8,9 +8,11 @@
     处理播放异常之后点击重试从头开始放，播放错误的时候保留播放进度，下次直接从上次播放的位置开始播放，
     另外默认给播放器绑定一个controller了，这样设置个url就可以直接放了。另外当url为空的时候默认不显示中间的播放按钮。
 
+1.5.....
 
 开发中，音频划出屏幕也可以后台播放，等待处理ui状态。
 
 Should have subtitle controller already set
 
  Reading a NULL string not supported here
+gradle bintray
