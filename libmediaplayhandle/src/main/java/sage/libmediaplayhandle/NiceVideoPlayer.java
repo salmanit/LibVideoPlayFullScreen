@@ -1,5 +1,6 @@
 package sage.libmediaplayhandle;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -7,8 +8,10 @@ import android.graphics.SurfaceTexture;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
+import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.ViewGroup;
@@ -77,16 +80,23 @@ public class NiceVideoPlayer extends FrameLayout
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
         this.addView(mContainer, params);
+        setController(new NiceVideoPlayerController(getContext()));
     }
-
-    public void setUp(String url, Map<String, String> headers) {
+    private long duration;
+    private long currentPosition;
+    public NiceVideoPlayer setUp(String url, Map<String, String> headers) {
         mUrl = url;
         mHeaders = headers;
+        if(getmController()!=null){
+            getmController().showCenterPlayUi(url);
+        }
+        duration=0;
+        currentPosition=0;
+        return this;
     }
 
-    public void setUp(String url) {
-        mUrl = url;
-        mHeaders = null;
+    public NiceVideoPlayer setUp(String url) {
+       return setUp(url,null);
     }
 
     public NiceVideoPlayerController getmController() {
@@ -94,9 +104,11 @@ public class NiceVideoPlayer extends FrameLayout
     }
 
     public void setController(NiceVideoPlayerController controller) {
+        if(mContainer!=null){
+            mContainer.removeView(mController);
+        }
         mController = controller;
         mController.setNiceVideoPlayer(this);
-        mContainer.removeView(mController);
         LayoutParams params = new LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
@@ -105,6 +117,9 @@ public class NiceVideoPlayer extends FrameLayout
 
     @Override
     public void start() {
+        if(TextUtils.isEmpty(mUrl)){
+            return;
+        }
         NiceVideoPlayerManager.instance().releaseNiceVideoPlayer();
         NiceVideoPlayerManager.instance().setCurrentNiceVideoPlayer(this);
         if (mCurrentState == STATE_IDLE
@@ -141,6 +156,9 @@ public class NiceVideoPlayer extends FrameLayout
             mMediaPlayer.pause();
             mCurrentState = STATE_BUFFERING_PAUSED;
             mController.setControllerState(mPlayerState, mCurrentState);
+        }
+        if(mCurrentState==STATE_PREPARING){
+            release();
         }
     }
 
@@ -229,10 +247,7 @@ public class NiceVideoPlayer extends FrameLayout
     private void initMediaPlayer() {
         if (mMediaPlayer == null) {
             mMediaPlayer = new MediaPlayer();
-
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mMediaPlayer.setScreenOnWhilePlaying(true);
-
             mMediaPlayer.setOnPreparedListener(mOnPreparedListener);
             mMediaPlayer.setOnVideoSizeChangedListener(mOnVideoSizeChangedListener);
             mMediaPlayer.setOnCompletionListener(mOnCompletionListener);
@@ -261,6 +276,7 @@ public class NiceVideoPlayer extends FrameLayout
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
+        mMediaPlayer.setScreenOnWhilePlaying(true);
         if (mSurfaceTexture == null) {
             mSurfaceTexture = surfaceTexture;
             openMediaPlayer();
@@ -271,7 +287,11 @@ public class NiceVideoPlayer extends FrameLayout
 
     private void openMediaPlayer() {
         try {
-            mMediaPlayer.setDataSource(mContext.getApplicationContext(), Uri.parse(mUrl), mHeaders);
+            if(mHeaders!=null){
+                mMediaPlayer.setDataSource(mContext.getApplicationContext(), Uri.parse(mUrl), mHeaders);
+            }else{
+                mMediaPlayer.setDataSource(mUrl);
+            }
             mMediaPlayer.setSurface(new Surface(mSurfaceTexture));
             mMediaPlayer.prepareAsync();
             manager.abandonAudioFocus(audioFocusChangeListener);
@@ -299,6 +319,8 @@ public class NiceVideoPlayer extends FrameLayout
             = new MediaPlayer.OnPreparedListener() {
         @Override
         public void onPrepared(MediaPlayer mp) {
+            System.out.println("OnPreparedListener============"+mp.getDuration());
+            duration=mp.getDuration();
             thisWidth=getWidth();
             thisHeight=getHeight();
             handleTextViewSize(getWidth(),getHeight());
@@ -307,6 +329,10 @@ public class NiceVideoPlayer extends FrameLayout
                 mCurrentState = STATE_PREPARED;
                 mController.setControllerState(mPlayerState, mCurrentState);
                 mp.start();
+                if(currentPosition>0){
+                    seekTo((int) currentPosition);
+                }
+                EnableAutoRotate(autoRotate);
             }
 
         }
@@ -331,8 +357,6 @@ public class NiceVideoPlayer extends FrameLayout
                 params.height=ViewGroup.LayoutParams.MATCH_PARENT;
             }
         mTextureView.setLayoutParams(params);
-        System.out.println("width===="+(videoWidth*1f/videoHeight+"**********"+width*1f/height));
-        System.out.println(videoWidth+"/"+videoHeight+"==width======"+width+"/"+height+"===="+params.width+"/"+params.height);
     }
     private MediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener
             = new MediaPlayer.OnVideoSizeChangedListener() {
@@ -345,9 +369,14 @@ public class NiceVideoPlayer extends FrameLayout
             = new MediaPlayer.OnCompletionListener() {
         @Override
         public void onCompletion(MediaPlayer mp) {
-            mCurrentState = STATE_COMPLETED;
-            mController.setControllerState(mPlayerState, mCurrentState);
-            NiceVideoPlayerManager.instance().setCurrentNiceVideoPlayer(null);
+            System.out.println("OnCompletionListener===================="+mMediaPlayer.getDuration()+"/"+mMediaPlayer.getCurrentPosition());
+            if(duration>0&&Math.abs(duration-mMediaPlayer.getCurrentPosition())<2*1000){
+                currentPosition=0;
+                mCurrentState = STATE_COMPLETED;
+                mController.setControllerState(mPlayerState, mCurrentState);
+                NiceVideoPlayerManager.instance().setCurrentNiceVideoPlayer(null);
+            }
+
         }
     };
 
@@ -355,9 +384,11 @@ public class NiceVideoPlayer extends FrameLayout
             = new MediaPlayer.OnErrorListener() {
         @Override
         public boolean onError(MediaPlayer mp, int what, int extra) {
+            System.out.println("OnErrorListener===============what=="+what+" extra==="+extra+"==="+mCurrentState);
+            currentPosition=mp.getCurrentPosition();
             mCurrentState = STATE_ERROR;
             mController.setControllerState(mPlayerState, mCurrentState);
-            return false;
+            return true;
         }
     };
 
@@ -517,6 +548,7 @@ public class NiceVideoPlayer extends FrameLayout
         mPlayerState = PLAYER_NORMAL;
         if (manager != null)
             manager.abandonAudioFocus(audioFocusChangeListener);
+        EnableAutoRotate(false);
     }
 
     @Override
@@ -545,4 +577,68 @@ public class NiceVideoPlayer extends FrameLayout
             }
         }
     };
+
+
+    OrientationEventListener listener;
+    boolean autoRotate = false;
+    int orientationTag = -1;
+
+    public  NiceVideoPlayer initEnableAutoRotationListener() {
+        autoRotate = true;
+        final Activity activity = (Activity) getContext();
+        listener = new OrientationEventListener(activity) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+
+                if ((0 <= orientation && orientation < 30) || orientation >= 330) {
+                    if (orientationTag == 1) {
+                        return;
+                    }
+                    orientationTag = 1;
+                    exitFullScreen();
+                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                }
+                if (orientation > 270 - 40 && orientation < 270 + 40) {
+                    if (orientationTag == 2) {
+                        return;
+                    }
+                    orientationTag = 2;
+                    enterFullScreen();
+                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                }
+                if (orientation > 90 - 40 && orientation < 90 + 40) {
+                    if (orientationTag == 3) {
+                        return;
+                    }
+                    orientationTag = 3;
+                    enterFullScreen();
+                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
+                }
+                if (orientation > 180 - 40 && orientation < 180 + 40) {
+                    if (orientationTag == 4) {
+                        return;
+                    }
+                    orientationTag = 4;
+                    exitFullScreen();
+                    activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT);
+                }
+            }
+        };
+        return this;
+    }
+
+    public NiceVideoPlayer EnableAutoRotate(boolean auto) {
+        if (listener != null)
+            if (listener.canDetectOrientation()) {
+                if (auto) {
+                    listener.enable();
+                } else {
+                    listener.disable();
+                }
+            }
+        return this;
+    }
+
+
+
 }

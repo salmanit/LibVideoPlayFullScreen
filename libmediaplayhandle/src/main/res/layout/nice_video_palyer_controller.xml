@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools">
     <ImageView
         android:id="@+id/image"
         android:layout_width="match_parent"
@@ -70,23 +71,14 @@
         android:id="@+id/error"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/black"
         android:gravity="center"
+        android:background="#44000000"
         android:orientation="vertical"
         android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="播放错误，请重试。"
-            android:textColor="@android:color/white"
-            android:textSize="13sp"/>
-
         <TextView
             android:id="@+id/retry"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
             android:background="@drawable/vpf_bg_retry"
             android:paddingBottom="5dp"
             android:paddingLeft="12dp"
@@ -95,6 +87,15 @@
             android:text="点击重试"
             android:textColor="@android:color/white"
             android:textSize="13sp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="播放错误，请重试"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"/>
+
+
     </LinearLayout>
 
     <LinearLayout
@@ -181,6 +182,7 @@
             android:id="@+id/full_screen"
             android:layout_width="24dp"
             android:layout_height="24dp"
+            android:padding="5dp"
             android:src="@drawable/vpf_ic_player_enlarge"/>
     </LinearLayout>
 

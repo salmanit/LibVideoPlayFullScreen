@@ -1,10 +1,17 @@
 package sage.libmediaplayhandle;
 
+import android.app.Activity;
 import android.content.Context;
+import android.media.AudioManager;
 import android.os.CountDownTimer;
 import android.support.annotation.DrawableRes;
+import android.text.TextUtils;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -52,6 +59,7 @@ public class NiceVideoPlayerController extends FrameLayout
         super(context);
         mContext = context;
         init();
+        initGuest();
     }
 
     private void init() {
@@ -227,10 +235,12 @@ public class NiceVideoPlayerController extends FrameLayout
                 mRestartPause.setImageResource(R.drawable.vpf_ic_player_start);
                 mLoadText.setText("正在缓冲...");
                 cancelDismissTopBottomTimer();
+                break;
             case NiceVideoPlayer.STATE_COMPLETED:
                 cancelUpdateProgressTimer();
                 setTopBottomVisible(false);
                 mImage.setVisibility(View.VISIBLE);
+                mError.setVisibility(GONE);
                 mCompleted.setVisibility(View.VISIBLE);
                 if (mNiceVideoPlayer.isFullScreen()) {
                     mNiceVideoPlayer.exitFullScreen();
@@ -244,6 +254,8 @@ public class NiceVideoPlayerController extends FrameLayout
                 setTopBottomVisible(false);
                 mTop.setVisibility(View.VISIBLE);
                 mError.setVisibility(View.VISIBLE);
+                mLoading.setVisibility(GONE);
+
                 break;
         }
     }
@@ -346,7 +358,7 @@ public class NiceVideoPlayerController extends FrameLayout
         mSeek.setProgress(0);
         mSeek.setSecondaryProgress(0);
 
-        mCenterStart.setVisibility(View.VISIBLE);
+        mCenterStart.setVisibility(TextUtils.isEmpty(url)?GONE:View.VISIBLE);
         mImage.setVisibility(View.VISIBLE);
 
         mBottom.setVisibility(View.GONE);
@@ -359,4 +371,140 @@ public class NiceVideoPlayerController extends FrameLayout
         mError.setVisibility(View.GONE);
         mCompleted.setVisibility(View.GONE);
     }
+
+    private String url;
+
+    public void showCenterPlayUi(String url) {
+        this.url=url;
+        if (mCenterStart != null) {
+            mCenterStart.setVisibility(TextUtils.isEmpty(url)?GONE:View.VISIBLE);
+        }
+    }
+
+    public boolean handleTouch;//是否支持手势操作音量，屏幕暗度
+    NiceVideoChangeToast aliChangeToast;
+    private AudioManager mAudioManager;
+    private GestureDetector mGestureDetector;
+    private void initGuest(){
+        mAudioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        mMaxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        mGestureDetector = new GestureDetector(getContext(), new MyGestureListener());
+        setAliChangeToast(new NiceVideoChangeToast(getContext()));
+    }
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if(handleTouch){
+            if (mGestureDetector.onTouchEvent(event))
+                return true;
+            // 处理手势结束
+            switch (event.getAction() & MotionEvent.ACTION_MASK) {
+                case MotionEvent.ACTION_UP:
+                    mVolume = -1;
+                    mBrightness = -1f;
+                    if (aliChangeToast != null) {
+                        aliChangeToast.cancelToast();
+                    }
+                    break;
+            }
+        }
+        return super.onTouchEvent(event);
+    }
+
+    public void setAliChangeToast(NiceVideoChangeToast aliChangeToast) {
+        this.aliChangeToast = aliChangeToast;
+    }
+
+
+    /**
+     * 最大声音
+     */
+    private int mMaxVolume;
+    /**
+     * 当前声音
+     */
+    private int mVolume = -1;
+    /**
+     * 当前亮度
+     */
+    private float mBrightness = -1f;
+
+    private class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
+
+        /**
+         * 滑动
+         */
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2,
+                                float distanceX, float distanceY) {
+            float mOldX = e1.getX(), mOldY = e1.getY();
+            int y = (int) e2.getY();
+
+            int windowWidth = getWidth();
+            int windowHeight = getHeight();
+
+            if (mOldX > windowWidth * 3.0 / 5)// 右边滑动
+                onVolumeSlide((mOldY - y) / windowHeight);
+            else if (mOldX < windowWidth * 2 / 5.0)// 左边滑动
+                onBrightnessSlide((mOldY - y) / windowHeight);
+
+            return super.onScroll(e1, e2, distanceX, distanceY);
+        }
+    }
+
+    /**
+     * 滑动改变声音大小
+     *
+     * @param percent 手指滑动的距离百分比【纵向】
+     */
+    private void onVolumeSlide(float percent) {
+
+        if (mVolume == -1) {
+            mVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+            if (mVolume < 0)
+                mVolume = 0;
+        }
+        int index = (int) (percent * mMaxVolume) + mVolume;
+        if (index > mMaxVolume)
+            index = mMaxVolume;
+        else if (index < 0)
+            index = 0;
+
+        // 变更声音
+        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, index, 0);
+        // 变更进度条
+        if (aliChangeToast != null) {
+            aliChangeToast.volumeChange(index, mMaxVolume);
+        }
+    }
+
+    /**
+     * 滑动改变亮度
+     *
+     * @param percent 手指滑动的距离百分比【纵向】
+     */
+    private void onBrightnessSlide(float percent) {
+
+        Window window = ((Activity) getContext()).getWindow();
+        if (mBrightness < 0) {
+            mBrightness = window.getAttributes().screenBrightness;
+            if (mBrightness <= 0.00f)
+                mBrightness = 0.50f;
+            if (mBrightness < 0.01f)
+                mBrightness = 0.01f;
+            // 显示
+
+        }
+        WindowManager.LayoutParams lpa = window.getAttributes();
+        lpa.screenBrightness = mBrightness + percent;
+        if (lpa.screenBrightness > 1.0f)
+            lpa.screenBrightness = 1.0f;
+        else if (lpa.screenBrightness < 0.01f)
+            lpa.screenBrightness = 0.01f;
+        window.setAttributes(lpa);
+        if (aliChangeToast != null) {
+            aliChangeToast.screenBrightnessChange(lpa.screenBrightness);
+        }
+    }
+
+
 }
